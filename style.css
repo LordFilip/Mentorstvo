@@ -1,0 +1,50 @@
+body {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  .calculator {
+    width: 40%;
+    height: 70%;
+    .screen {
+      background-color: aquamarine;
+      height: 30%;
+      width: 100%;
+
+      display: flex;
+      flex-direction: column;
+      justify-content: space-around;
+      align-items: center;
+      .input1,
+      .input2 {
+        width: 90%;
+        height: 20px;
+        font-size: 30px;
+        display: flex;
+        justify-content: end;
+      }
+      .input1 {
+        font-size: 34px;
+      }
+      .input2 {
+        font-size: 28px;
+        color: dimgray;
+      }
+    }
+    .keyboard {
+      width: 100%;
+      height: 70%;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1px;
+
+      button {
+        font-size: 24px;
+      }
+
+      button:last-child {
+        grid-column: span 2;
+      }
+    }
+  }
+}
