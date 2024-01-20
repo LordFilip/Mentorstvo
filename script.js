@@ -1,139 +1,265 @@
-const numbers = document.querySelectorAll(".number");
-const input1 = document.querySelector(".input1");
-const input2 = document.querySelector(".input2");
-const dot = document.getElementById("dot");
-const c = document.getElementById("c");
-const clr = document.getElementById("clr");
-const operations = document.querySelectorAll(".sign");
-const equal = document.getElementById("equal");
-const prefix = document.getElementById("prefix");
+const button = document.getElementById("button");
 
-input1.textContent = "0";
-let inp2Ind = false;
-let operationInd = 0;
-let currentOperator;
-let secondInputInd = false;
-let lastOperation = null;
+const operations = ["+", "/", "-", "*", "^", "!", "."];
+const brackets = ["(", ")"];
 
-numbers.forEach((number) => {
-  number.addEventListener("click", () => {
-    if (inp2Ind === true) {
-      input1.textContent = "";
-      inp2Ind = false;
+const basicOperations = ["+", "/", "-", "*"];
+const advancedOperations = ["^", "!"];
+
+button.addEventListener("click", function () {
+  const expressionInput = document.getElementById("expressionInput");
+  const expression = expressionInput.value;
+
+  if (!stringValidation(expression)) {
+    output.innerText = "Invalid input!";
+  } else {
+    output.innerText = "Correct input!";
+    calculate(expression);
+  }
+});
+
+// Function to validate a mathematical expression string
+function stringValidation(expression) {
+  // Initialize a variable to keep track of the balance of brackets
+  var bracketsInd = 0;
+
+  // Check the first and last characters for valid starting and ending
+  if (
+    (isNaN(expression[0]) && expression[0] !== "(") ||
+    (isNaN(expression[expression.length - 1]) &&
+      expression[expression.length - 1] !== ")" &&
+      expression[expression.length - 1] !== "!")
+  ) {
+    return false;
+  }
+
+  // Loop through each character in the expression
+  for (let i = 0; i < expression.length; i++) {
+    // Update the bracket balance for each opening and closing parenthesis
+    if (expression[i] === "(") {
+      bracketsInd++;
+    } else if (expression[i] === ")") {
+      bracketsInd--;
+    } else if (bracketsInd < 0) {
+      return false; // Return false if unbalanced closing parenthesis found
     }
-    if (input1.textContent.length < 11) {
-      if (input1.textContent === "0" || lastOperation !== null) {
-        input1.textContent = number.textContent;
-        secondInputInd = true;
-      } else {
-        input1.textContent += number.textContent;
-        secondInputInd = true;
+  }
+
+  // Check if there are any unmatched opening or closing parenthesis
+  if (bracketsInd != 0) {
+    return false;
+  }
+
+  // Loop through each character again for further validation
+  for (let i = 0; i < expression.length; i++) {
+    // Check if the character is valid based on defined operations, brackets, or numbers
+    if (
+      !(
+        operations.includes(expression[i]) ||
+        brackets.includes(expression[i]) ||
+        !isNaN(expression[i])
+      )
+    ) {
+      return false; // Return false if any invalid character is found
+    } else if (
+      // Check for consecutive basic or advanced operations
+      (basicOperations.includes(expression[i]) &&
+        basicOperations.includes(expression[i + 1])) ||
+      (advancedOperations.includes(expression[i]) &&
+        advancedOperations.includes(expression[i + 1]))
+    ) {
+      return false;
+    } else if (
+      // Check for invalid sequences of opening and closing parenthesis
+      (expression[i] === ")" && expression[i + 1] === "(") ||
+      (expression[i] === "(" && expression[i + 1] === ")")
+    ) {
+      return false;
+    } else if (
+      // Check for invalid sequence of opening parenthesis followed by an operation
+      expression[i] === "(" &&
+      operations.includes(expression[i + 1])
+    ) {
+      return false;
+    } else if (
+      // Check for division by zero
+      expression[i] === "/" &&
+      expression[i + 1] === "0"
+    ) {
+      return false;
+    } else if (
+      // Check for invalid sequence of closing parenthesis followed by an operation
+      expression[i] === ")" &&
+      operations.includes(expression[i - 1]) &&
+      expression[i - 1] !== "!"
+    ) {
+      return false;
+    } else if (expression[i] === "." && expression[i + 1] === ".") {
+      return false;
+    }
+  }
+
+  return true; // Return true if all characters pass validation
+}
+
+// Function to perform calculations on a mathematical expression
+function calculate(expression) {
+  // Initialize variables to store indices for parentheses
+  let ind1 = 0;
+  let ind2 = 0;
+
+  // Continue processing the expression as long as there are parentheses
+  while (expression.includes("(")) {
+    // Loop through each character in the expression
+    for (let i = 0; i < expression.length; i++) {
+      // If a closing parenthesis is encountered, find the corresponding opening parenthesis
+      if (expression[i] === ")") {
+        ind2 = i - 1;
+
+        // Traverse backward to find the matching opening parenthesis
+        while (expression[i] !== "(") {
+          i--;
+
+          // Update the indices when the opening parenthesis is found
+          if (expression[i] === "(") {
+            ind1 = i + 1;
+            break; // Exit the inner loop when "(" is found
+          }
+        }
+
+        break; // Exit the outer loop when ")" is found
       }
     }
 
-    lastOperation = null;
-  });
-});
+    // Extract the substring within the parentheses
+    let copiedSubstring1 = expression.substring(ind1, ind2 + 1);
 
-dot.addEventListener("click", function () {
-  if (!input1.textContent.includes(".")) {
-    input1.textContent += ".";
-  }
-});
+    // Perform split by addition and subtraction on the extracted substring
+    let newPart = splitByPlusAndMinus(copiedSubstring1);
 
-c.addEventListener("click", function () {
-  if (input1.textContent === "Error: Division by zero") input1.textContent = "";
-  input1.textContent = input1.textContent.slice(0, -1);
+    // Replace the substring within the parentheses with the calculated result
+    let newString =
+      expression.substring(0, Math.max(0, ind1 - 1)) +
+      newPart +
+      expression.substring(ind2 + 2);
 
-  if (input1.textContent.length === 0) {
-    input1.textContent = "0";
+    // Update the expression for further iterations
+    expression = newString;
   }
 
-  if (input1.textContent.slice(-1) === ".") {
-    input1.textContent = input1.textContent.slice(0, -1);
-  }
-});
+  // Log the final expression to the console for debugging
+  console.log(expression);
 
-clr.addEventListener("click", function () {
-  input1.textContent = "";
-  input2.textContent = "";
-  input1.textContent = "0";
-  operationInd = 0;
-  secondInputInd = false;
-  lastOperation = null;
-});
+  // Perform split by addition and subtraction on the final expression
+  var final = splitByPlusAndMinus(expression);
 
-operations.forEach((operation) => {
-  operation.addEventListener("click", function () {
-    operationInd++;
-    if (operationInd === 2 && secondInputInd === true) {
-      equal.click();
+  // Log the final result to the console for debugging
+  console.log(final);
+
+  // Update the output element with the final result
+  output.innerText = final;
+}
+
+// Function to split an expression by addition and subtraction
+function splitByPlusAndMinus(expression) {
+  // Initialize an array to store the result
+  var result = [];
+
+  // Iterate through each character in the input expression
+  for (let i = 0; i < expression.length; i++) {
+    // Add the current character to the result array
+    result.push(expression[i]);
+
+    // If the current character is '-', add 'k' to represent subtraction
+    if (expression[i] === "-") {
+      result.push("k");
     }
-    if (operationInd > 1) {
-      input2.textContent =
-        input2.textContent.slice(0, -1) + operation.textContent;
-      currentOperator = operation.textContent;
-      input2.textContent = input1.textContent + operation.textContent;
-      inp2Ind = true;
-      operationInd--;
+  }
+
+  // Join the characters into a string, split by '+' and '-', then flatten the result
+  result = result
+    .join("")
+    .split("+")
+    .flatMap((element) => element.split("-"));
+
+  // Replace every 'k' with '-'
+  result = result.map((element) => element.replace(/k/g, "-"));
+
+  // Log the final result to the console for debugging
+  console.log(result);
+
+  // Return the result after further calculations
+  return calculateArray(result);
+}
+/*
+  Function to perform calculations on a mathematical expression.
+  Supports factorial (!) and exponentiation (^). Expressions are evaluated
+  based on multiplication (*), division (/), and addition (+) operations.
+ */
+function calculateArray(arr) {
+  // Helper function to calculate factorial
+  function factorial(n) {
+    if (n === 0 || n === 1) {
+      return 1;
     } else {
-      op1 = Number(input1.textContent);
-      input2.textContent = input1.textContent + operation.textContent;
-      inp2Ind = true;
-      currentOperator = operation.textContent;
-      secondInputInd = false;
+      return n * factorial(n - 1);
     }
-    lastOperation = operation;
-  });
-});
-
-equal.addEventListener("click", function () {
-  if (secondInputInd === true) {
-    const op2 = Number(input1.textContent);
-
-    input2.textContent += input1.textContent + "=";
-
-    let result;
-
-    switch (currentOperator) {
-      case "+":
-        result = op1 + op2;
-        break;
-      case "-":
-        result = op1 - op2;
-        break;
-      case "*":
-        result = op1 * op2;
-        break;
-      case "/":
-        if (op2 !== 0) {
-          result = op1 / op2;
-        } else {
-          result = "Error: Division by zero";
-        }
-        break;
-      default:
-        result = "Error: Invalid operator";
-    }
-
-    let result2;
-    result = parseFloat(result.toFixed(4));
-    result2 = result.toString();
-    if (result2.length > 10) {
-      input1.textContent = result.toExponential(10);
-    } else {
-      input1.textContent = result;
-    }
-
-    op1 = result;
-    currentOperator = null;
-    inp2Ind = true;
-
-    operationInd--;
-    secondInputInd = false;
   }
-});
-prefix.addEventListener("click", function () {
-  let num = Number(input1.textContent);
-  input1.textContent = -num;
-});
+
+  // Helper function to calculate power
+  function power(base, exponent) {
+    return Math.pow(base, exponent);
+  }
+
+  // Iterate through the array
+  for (let i = 0; i < arr.length; i++) {
+    // Replace factorial expressions
+    arr[i] = arr[i].replace(/(-?\d+)!/, (_, num) => factorial(parseInt(num)));
+
+    // Replace power expressions
+    arr[i] = arr[i].replace(/(-?\d+)\^(-?\d+)/, (_, base, exponent) =>
+      power(parseFloat(base), parseFloat(exponent))
+    );
+
+    // Split the expression into terms based on * and /
+    const terms = arr[i].split(/(\*|\/)/);
+
+    // Initialize result with the first term
+    let result = parseFloat(terms[0]);
+
+    // Iterate over the remaining terms
+    for (let j = 1; j < terms.length; j += 2) {
+      const operator = terms[j];
+      const operand = parseFloat(terms[j + 1]);
+
+      // Perform the operation based on the operator
+      if (operator === "*") {
+        result *= operand;
+      } else if (operator === "/") {
+        result /= operand;
+      }
+    }
+
+    // Update the array with the calculated result
+    arr[i] = result;
+  }
+
+  console.log(arr);
+  return findArraySum(arr);
+}
+//Function to find sum of an array
+function findArraySum(arr) {
+  // Check if the input array is empty
+  if (arr.length === 0) {
+    return 0;
+  }
+
+  // Use the reduce function to calculate the sum
+  const sum = arr.reduce(
+    (accumulator, currentValue) => accumulator + currentValue,
+    0
+  );
+
+  console.log(sum);
+  return sum;
+}
