@@ -1,4 +1,5 @@
 const button = document.getElementById("button");
+const output = document.getElementById("output");
 
 const operations = ["+", "/", "-", "*", "^", "!", "."];
 const brackets = ["(", ")"];
@@ -6,15 +7,20 @@ const brackets = ["(", ")"];
 const basicOperations = ["+", "/", "-", "*"];
 const advancedOperations = ["^", "!"];
 
-button.addEventListener("click", function () {
-  const expressionInput = document.getElementById("expressionInput");
-  const expression = expressionInput.value;
+document.addEventListener("DOMContentLoaded", function () {
+  // Check if the button exists before adding the event listener
+  if (button) {
+    button.addEventListener("click", function () {
+      const expressionInput = document.getElementById("expressionInput");
+      const expression = expressionInput.value;
 
-  if (!stringValidation(expression)) {
-    output.innerText = "Invalid input!";
-  } else {
-    output.innerText = "Correct input!";
-    calculate(expression);
+      if (!stringValidation(expression)) {
+        output.innerText = "Invalid input!";
+      } else {
+        output.innerText = "Invalid input!";
+        calculate(expression);
+      }
+    });
   }
 });
 
@@ -78,9 +84,11 @@ function stringValidation(expression) {
     } else if (
       // Check for invalid sequence of opening parenthesis followed by an operation
       expression[i] === "(" &&
-      operations.includes(expression[i + 1])
+      operations.includes(expression[i + 1]) &&
+      expression[i + 1] !== "-" &&
+      !isNaN(expression[i + 2])
     ) {
-      return false;
+      continue; // Allow a minus sign as the first character after an opening parenthesis
     } else if (
       // Check for division by zero
       expression[i] === "/" &&
@@ -157,7 +165,11 @@ function calculate(expression) {
   console.log(final);
 
   // Update the output element with the final result
-  output.innerText = final;
+
+  if (output) {
+    output.innerText = final;
+  }
+  return final;
 }
 
 // Function to split an expression by addition and subtraction
@@ -169,10 +181,12 @@ function splitByPlusAndMinus(expression) {
   for (let i = 0; i < expression.length; i++) {
     // Add the current character to the result array
     result.push(expression[i]);
+    console.log(`push1: ${result}`);
 
     // If the current character is '-', add 'k' to represent subtraction
     if (expression[i] === "-") {
       result.push("k");
+      console.log(`push1: ${result}`);
     }
   }
 
@@ -185,12 +199,46 @@ function splitByPlusAndMinus(expression) {
   // Replace every 'k' with '-'
   result = result.map((element) => element.replace(/k/g, "-"));
 
-  // Log the final result to the console for debugging
-  console.log(result);
+  // Filter out empty elements from the result
+  result = result.filter((element) => element !== "");
+
+  // Log the result array before post-processing
+  console.log(`splitByPlusAndMinus ${result}`);
+
+  // Post-processing: Merge elements ending with '*' and starting with '-'
+  let continueMerging = true;
+
+  while (continueMerging) {
+    continueMerging = false; // Assume we won't continue merging in this iteration
+
+    for (let i = 0; i < result.length - 1; i++) {
+      if (result[i].endsWith("*") && result[i + 1].startsWith("-")) {
+        // Merge the two elements
+        result[i] += result[i + 1].substring(1);
+        // Remove the second element
+        result.splice(i + 1, 1);
+        // Add a single minus sign back to the beginning of the element
+        result[i] = `-${result[i]}`;
+        continueMerging = true; // Set to true to continue merging in the next iteration
+      }
+    }
+  }
+
+  for (let i = 0; i < result.length; i++) {
+    // Check if the element starts with two minus signs
+    if (result[i].startsWith("--")) {
+      // Remove both minus signs from the beginning of the element
+      result[i] = result[i].substring(2);
+    }
+  }
+
+  // Log the final result after post-processing
+  console.log(`splitByPlusAndMinus ${result}`);
 
   // Return the result after further calculations
   return calculateArray(result);
 }
+
 /*
   Function to perform calculations on a mathematical expression.
   Supports factorial (!) and exponentiation (^). Expressions are evaluated
@@ -244,7 +292,7 @@ function calculateArray(arr) {
     arr[i] = result;
   }
 
-  console.log(arr);
+  console.log(`Calculate Array: ${arr}`);
   return findArraySum(arr);
 }
 //Function to find sum of an array
@@ -260,6 +308,10 @@ function findArraySum(arr) {
     0
   );
 
-  console.log(sum);
+  console.log(`findArraySum: ${sum}`);
   return sum;
 }
+
+// Change this line to export the module with the correct name
+
+module.exports = { stringValidation, calculate };
